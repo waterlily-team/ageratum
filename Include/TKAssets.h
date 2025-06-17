@@ -1,5 +1,5 @@
-#ifndef TKAST_MAIN_H
-#define TKAST_MAIN_H
+#ifndef TKASSETS_MAIN_H
+#define TKASSETS_MAIN_H
 
 #define __need_size_t
 #include <stddef.h>
@@ -53,4 +53,4 @@ bool tkast_loadFile(tkast_file_t *file);
 
 bool tkast_writeFile(tkast_file_t *file, const uint8_t *contents);
 
-#endif // TKAST_MAIN_H
+#endif // TKASSETS_MAIN_H

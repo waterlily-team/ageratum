@@ -8,7 +8,7 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("TKAssets" LANGUAGES C VERSION 0.0.0.3)
+project("TKAssets" LANGUAGES C VERSION 0.0.0.4)
 
 include(Helpers)
 run_checks(ON)
