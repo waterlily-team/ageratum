@@ -8,8 +8,11 @@
 ################################################################################
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project("TKAssets" LANGUAGES C VERSION 0.0.0.6)
+project("TKAssets" LANGUAGES C VERSION 0.0.0.7)
 
 include(Helpers)
 run_checks(ON)
 create_target(OFF RAW_SOURCES "TKAssets")
+
+add_dependencies(${PROJECT_NAME} TKLogging)
+target_include_directories(${PROJECT_NAME} PRIVATE "$<TARGET_PROPERTY:TKLogging,INTERFACE_INCLUDE_DIRECTORIES>")
