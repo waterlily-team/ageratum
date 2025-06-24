@@ -1,6 +1,11 @@
 #ifndef AGERATUM_H
 #define AGERATUM_H
 
+#define AGERATUM_MAJOR_VERSION 0
+#define AGERATUM_MINOR_VERSION 0
+#define AGERATUM_PATCH_VERSION 0
+#define AGERATUM_TWEAK_VERSION 12
+
 #define __need_size_t
 #include <stddef.h>
 #include <stdint.h>
