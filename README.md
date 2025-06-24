@@ -6,7 +6,7 @@
 ![loc_badge](https://github.com/waterlily-team/assets/blob/badges/loc.svg)
 ![latest_release_badge](https://img.shields.io/github/v/release/waterlily-team/assets?label=Latest&include_preleases=true)
 
-A small, incredibly specialized [asset library]() for handling things like [tilesets](), generic images (`JPEG`, `PNG`, `BMP`), music, etcetera. It's built to be performant but incredibly simple, and has but a single file, which acts duly as a header and implementation file. WLAssets depends on nothing but the [C standard library]().
+A small, incredibly specialized [asset library](https://en.wikipedia.org/wiki/Digital_asset_management) for handling things like [tilesets](https://en.wikipedia.org/wiki/Tile-based_video_game#Tile_set), generic images (`JPEG`, `PNG`, `BMP`), music, etcetera. It's built to be performant but incredibly simple, and has but a single file, which acts duly as a header and implementation file. WLAssets depends on nothing but the [C standard library](https://en.wikipedia.org/wiki/C_standard_library).
 
 ---
 
@@ -28,8 +28,8 @@ WLAssets supports the following formats of media, alongside "unknown" files whic
 
 - Generic:
     - [EXE](https://en.wikipedia.org/wiki/Executable): **Not yet supported, but planned.**
-    - [GLSL](https://en.wikipedia.org/wiki/OpenGL_Shading_Language):
-    - [Text](https://en.wikipedia.org/wiki/Text_file):
+    - [GLSL](https://en.wikipedia.org/wiki/OpenGL_Shading_Language): Currently supported, and a [`glslang`](https://github.com/KhronosGroup/glslang)-based compilation workflow to [SPIR-V](https://en.wikipedia.org/wiki/Standard_Portable_Intermediate_Representation) is also implemented.
+    - [Text](https://en.wikipedia.org/wiki/Text_file): Currently supported, though they're treated as raw bytes.
     - [YAML](https://en.wikipedia.org/wiki/YAML): **Not yet supported, but planned.**
 - Images:
     - [PNG](https://en.wikipedia.org/wiki/PNG): **Not yet supported, but planned.**
