@@ -17,12 +17,13 @@
 #define AGERATUM_MAJOR_VERSION 0
 #define AGERATUM_MINOR_VERSION 0
 #define AGERATUM_PATCH_VERSION 0
-#define AGERATUM_TWEAK_VERSION 13
+#define AGERATUM_TWEAK_VERSION 14
 
 #define __need_size_t
 #include <stddef.h>
 
 #define AGERATUM_BASE_DIRECTORY "./Resources/"
+#define AGERATUM_SYSTEM_DIRECTORY "/usr/bin/"
 #define AGERATUM_MAX_PATH_LENGTH 128
 #define AGERATUM_MAX_FILENAME_LENGTH 32
 
@@ -44,6 +45,7 @@ typedef enum ageratum_type
     AGERATUM_GLSL_FRAGMENT,
     AGERATUM_SPIRV_VERTEX,
     AGERATUM_SPIRV_FRAGMENT,
+    AGERATUM_SYSTEM,
 } ageratum_type_t;
 
 typedef struct ageratum_file
@@ -57,13 +59,22 @@ typedef struct ageratum_file
 bool ageratum_openFile(ageratum_file_t *file,
                        ageratum_permissions_t permissions);
 
-bool ageratum_closeFile(ageratum_file_t *file);
+[[gnu::always_inline]]
+inline bool ageratum_closeFile(ageratum_file_t *file);
 
 bool ageratum_loadFile(ageratum_file_t *file, char *contents);
 
 bool ageratum_writeFile(ageratum_file_t *file, const char *const contents);
 
 bool ageratum_getFileSize(ageratum_file_t *file);
+
+bool ageratum_executeFile(const ageratum_file_t *const file,
+                          const char *const *const argv, size_t argc,
+                          int *status);
+
+// TODO: "Workflow" functionality, where this can be generalized into a process
+// TODO: for many different file types.
+bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 
 ///////////////////////////////////////////////////////////////////////////////
 //                              IMPLEMENTATION                               //
@@ -74,6 +85,8 @@ bool ageratum_getFileSize(ageratum_file_t *file);
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 static const char *const ageratum_subdirectories[] = {
     [AGERATUM_UNKNOWN] = 0,
@@ -82,6 +95,7 @@ static const char *const ageratum_subdirectories[] = {
     [AGERATUM_GLSL_FRAGMENT] = "Shaders/Source/",
     [AGERATUM_SPIRV_VERTEX] = "Shaders/Compiled/",
     [AGERATUM_SPIRV_FRAGMENT] = "Shaders/Compiled/",
+    [AGERATUM_SYSTEM] = "",
 };
 
 static const char *const ageratum_extensions[] = {
@@ -91,17 +105,29 @@ static const char *const ageratum_extensions[] = {
     [AGERATUM_GLSL_FRAGMENT] = ".frag",
     [AGERATUM_SPIRV_VERTEX] = "-vert.spv",
     [AGERATUM_SPIRV_FRAGMENT] = "-frag.spv",
+    [AGERATUM_SYSTEM] = "",
 };
 
-bool ageratum_openFile(ageratum_file_t *file,
-                       ageratum_permissions_t permissions)
+static void ageratum_createFilepath(const ageratum_file_t *const file,
+                                    char *path)
 {
-    char path[AGERATUM_MAX_PATH_LENGTH + 1] = AGERATUM_BASE_DIRECTORY;
+    if (file->type != AGERATUM_SYSTEM)
+        (void)strncat(path, AGERATUM_BASE_DIRECTORY, AGERATUM_MAX_PATH_LENGTH);
+    else
+        (void)strncat(path, AGERATUM_SYSTEM_DIRECTORY,
+                      AGERATUM_MAX_PATH_LENGTH);
     (void)strncat(path, ageratum_subdirectories[file->type],
                   AGERATUM_MAX_PATH_LENGTH);
     (void)strncat(path, file->filename, AGERATUM_MAX_PATH_LENGTH);
     (void)strncat(path, ageratum_extensions[file->type],
                   AGERATUM_MAX_PATH_LENGTH);
+}
+
+bool ageratum_openFile(ageratum_file_t *file,
+                       ageratum_permissions_t permissions)
+{
+    char path[AGERATUM_MAX_PATH_LENGTH];
+    ageratum_createFilepath(file, path);
 
     char mode[3];
     if (__builtin_expect(permissions == AGERATUM_READWRITE, 0))
@@ -121,7 +147,7 @@ bool ageratum_openFile(ageratum_file_t *file,
     return true;
 }
 
-bool ageratum_closeFile(ageratum_file_t *file)
+inline bool ageratum_closeFile(ageratum_file_t *file)
 {
     if (__builtin_expect(fclose(file->handle) != 0, 0))
     {
@@ -156,6 +182,88 @@ bool ageratum_writeFile(ageratum_file_t *file, const char *const contents)
     }
     waterlily_log(VERBOSE_OK, "Wrote %zu bytes to file '%s'.", file->size,
                   file->filename);
+    return true;
+}
+
+bool ageratum_executeFile(const ageratum_file_t *const file,
+                          const char *const *const argv, size_t argc,
+                          int *status)
+{
+    char path[AGERATUM_MAX_PATH_LENGTH];
+    ageratum_createFilepath(file, path);
+
+    if (access(path, X_OK) == -1)
+    {
+        waterlily_log(ERROR, "Cannot execute file '%s'.", path);
+        return false;
+    }
+
+    pid_t pid = fork();
+    if (pid == -1)
+    {
+        waterlily_log(ERROR, "Failed to fork process.");
+        return false;
+    }
+
+    char *trueArgv[argc + 2];
+    trueArgv[0] = path;
+    for (size_t i = 0; i < argc; i++) trueArgv[i + 1] = (char *)argv[i];
+    trueArgv[argc + 1] = nullptr;
+
+    // This is executed within the new process.
+    if (pid == 0 && execve(path, (char *const *)trueArgv, nullptr) == -1)
+    {
+        waterlily_log(ERROR, "Failed to execute file '%s'.", path);
+        return false;
+    }
+
+    int processStatus = 0;
+    pid_t waitStatus = waitpid(pid, &processStatus, 0);
+    if (waitStatus == (pid_t)-1)
+    {
+        waterlily_log(WARNING, "Unable to wait for execution of '%s'.", path);
+        return false;
+    }
+
+    if (!WIFEXITED(processStatus))
+    {
+        waterlily_log(WARNING,
+                      "File '%s' ended execution with an unexpected result.",
+                      path);
+        return false;
+    }
+    *status = WEXITSTATUS(processStatus);
+    return true;
+}
+
+bool ageratum_glslToSPIRV(const ageratum_file_t *const file)
+{
+    ageratum_file_t glslangFile = {.filename = "glslang",
+                                   .type = AGERATUM_SYSTEM};
+
+    char path[AGERATUM_MAX_PATH_LENGTH];
+    ageratum_createFilepath(file, path);
+
+    char outputPath[AGERATUM_MAX_PATH_LENGTH];
+    ageratum_file_t outputFile = *file;
+    outputFile.type =
+        (file->type == AGERATUM_GLSL_FRAGMENT ? AGERATUM_SPIRV_FRAGMENT
+                                              : AGERATUM_SPIRV_VERTEX);
+    ageratum_createFilepath(&outputFile, outputPath);
+
+    const char *const argv[] = {
+        "--target-env",   "vulkan1.3", "-e",          "main",  "-g0",     "-t",
+        "--glsl-version", "460",       "--spirv-val", "--lto", "--quiet", "-o",
+        outputPath,       path,
+    };
+    int status = 0;
+    if (!ageratum_executeFile(&glslangFile, argv, 14, &status))
+    {
+        waterlily_log(ERROR, "Couldn't compile shader '%s'. Code %d.", path,
+                      status);
+        return false;
+    }
+
     return true;
 }
 

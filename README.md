@@ -27,7 +27,7 @@ Ageratum does not plan to support [Microsoft Windows](https://en.wikipedia.org/w
 Ageratum supports the following formats of media, alongside "unknown" files which are treated as raw bytes.
 
 - Generic:
-    - [EXE](https://en.wikipedia.org/wiki/Executable): **Not yet supported, but planned.**
+    - [EXE](https://en.wikipedia.org/wiki/Executable): Unix executables are currently supported, with flags to dictate how their execution is handled.
     - [GLSL](https://en.wikipedia.org/wiki/OpenGL_Shading_Language): Currently supported, and a [`glslang`](https://github.com/KhronosGroup/glslang)-based compilation workflow to [SPIR-V](https://en.wikipedia.org/wiki/Standard_Portable_Intermediate_Representation) is also implemented.
     - [Text](https://en.wikipedia.org/wiki/Text_file): Currently supported, though they're treated as raw bytes.
     - [YAML](https://en.wikipedia.org/wiki/YAML): **Not yet supported, but planned.**
