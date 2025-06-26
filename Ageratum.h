@@ -14,8 +14,10 @@
 #ifndef AGERATUM_H
 #define AGERATUM_H
 
+#include <WLLogging.h>
 #define __need_size_t
 #include <stddef.h>
+#include <stdio.h>
 
 /**
  * @def AGERATUM_MAJOR_VERSION
@@ -47,7 +49,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 27
+#define AGERATUM_TWEAK_VERSION 28
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -163,30 +165,32 @@ typedef enum ageratum_type
     /**
      * @var ageratum_type AGERATUM_GLSL_VERTEX
      * @brief A GLSL vertex shader file. This is one of the possible inputs for
-     * the GLSL->SPIRV workflow. It comes with the extension ".vert".
+     * the @ref ageratum_glslToSPIRV function. It comes with the extension
+     * ".vert".
      * @since v0.0.0.2
      */
     AGERATUM_GLSL_VERTEX,
     /**
      * @var ageratum_type AGERATUM_GLSL_FRAGMENT
      * @brief A GLSL fragment shader file. This is one of the possible inputs
-     * for the GLSL->SPIRV workflow. It comes with the extension ".frag".
+     * for the @ref ageratum_glslToSPIRV function. It comes with the extension
+     * ".frag".
      * @since v0.0.0.2
      */
     AGERATUM_GLSL_FRAGMENT,
     /**
      * @var ageratum_type AGERATUM_SPIRV_VERTEX
      * @brief A SPIRV vertex shader file. This is treated as a string of bytes,
-     * and is the output for the GLSL->SPIRV workflow. It comes with the
-     * extension "-vert.spv".
+     * and is the output for the @ref ageratum_glslToSPIRV function. It comes
+     * with the extension "-vert.spv".
      * @since v0.0.0.13
      */
     AGERATUM_SPIRV_VERTEX,
     /**
      * @var ageratum_type AGERATUM_SPIRV_FRAGMENT
      * @brief A SPIRV fragment shader file. This is treated as a string of
-     * bytes, and is the output for the GLSL->SPIRV workflow. It comes with the
-     * extension "-frag.spv".
+     * bytes, and is the output for the @ref ageratum_glslToSPIRV function. It
+     * comes with the extension "-frag.spv".
      * @since v0.0.0.13
      */
     AGERATUM_SPIRV_FRAGMENT,
@@ -233,12 +237,8 @@ typedef struct ageratum_file
      * @property handle
      * @brief The underlying handle of the file within the filesystem.
      * @since v0.0.0.13
-     *
-     * @remark This is actually of the type FILE*, but in order to prevent a
-     * mostly unnessecary @c stdio.h include, it's just referenced as a void
-     * pointer.
      */
-    void *handle;
+    FILE *handle;
     /**
      * @property size
      * @brief The size of the file in bytes.
@@ -247,25 +247,151 @@ typedef struct ageratum_file
     size_t size;
 } ageratum_file_t;
 
+/**
+ * @fn bool ageratum_openFile(ageratum_file_t *file, ageratum_permissions_t
+ * permissions)
+ * @brief Open a file and store its handle in the provided structure. The file
+ * must have its filename and filetype set, all other values will be ignored.
+ * @since v0.0.0.13
+ *
+ * @remark Should a file handle have previously have been in this file
+ * structure, it should be closed before calling, as it will be leaked on
+ * overwrite.
+ *
+ * @param[in, out] file The file structure we are going to be operating on and
+ * storing to.
+ * @param[in] permissions The permissions to open the file under.
+ *
+ * @return A boolean value representing whether or not the file was opened
+ * successfully. On failure, a message will be posted to @c stderr alongside the
+ * current @c ERRNO value. This function usually fails because the given file
+ * does not exist.
+ */
+[[gnu::nonnull(1)]] [[gnu::hot]] [[nodiscard("Expression result unchecked.")]]
 bool ageratum_openFile(ageratum_file_t *file,
                        ageratum_permissions_t permissions);
 
-[[gnu::always_inline]]
-inline bool ageratum_closeFile(ageratum_file_t *file);
+/**
+ * @fn bool ageratum_closeFile(ageratum_file_t *file)
+ * @brief Close a file handle.
+ * @since v0.0.0.13
+ *
+ * @param[in] file The file structure to be operated on. The file handle is
+ * garbage after this function's completion.
+ *
+ * @return A boolean value representing whether or not the file was closed
+ * successfully. On failure, a message will be posted to @c stderr alongside the
+ * current @c ERRNO value. This function usually fails because of IO errors when
+ * flushing the file's buffer.
+ */
+[[gnu::nonnull(1)]] [[gnu::hot]] [[nodiscard("Expression result unchecked.")]]
+inline bool ageratum_closeFile(const ageratum_file_t *const file)
+{
+    if (__builtin_expect(fclose(file->handle) != 0, 0))
+    {
+        waterlily_log(ERROR, "Failed to close file '%s'.", file->basename);
+        return false;
+    }
+    return true;
+}
 
-bool ageratum_loadFile(ageratum_file_t *file, char *contents);
+/**
+ * @fn bool ageratum_loadFile(ageratum_file_t *file, char *contents)
+ * @brief Load all the contents of the given file from disk. The given file
+ * structure must have a valid file pointer and its size must have been polled
+ * via @ref ageratum_getFileSize.
+ * @since v0.0.0.1
+ *
+ * @param[in] file The file structure to be operated on.
+ * @param[out] contents An array of bytes in which the file's contents will be
+ * inserted. This must be large enough to store the file's entire contents plus
+ * a terminating null character.
+ *
+ * @return A boolean value representing whether or not the file was loaded
+ * successfully. On failure, a message will be posted to @c stderr alongside the
+ * current @c ERRNO value. This function typically fails because of IO errors.
+ */
+[[gnu::nonnull(1, 2)]] [[nodiscard("Expression result unchecked.")]]
+bool ageratum_loadFile(const ageratum_file_t *const file, char *contents);
 
-bool ageratum_writeFile(ageratum_file_t *file, const char *const contents);
+/**
+ * @fn bool ageratum_writeFile(const ageratum_file_t *const file, const char
+ * *const contents)
+ * @brief Write the given contents to the given file. The given file must
+ * contain a valid file handle, and the given file size is the count of elements
+ * that are to be written.
+ * @since v0.0.0.1
+ *
+ * @param[in] file The file structure to be operated on.
+ * @param[out] contents An array of bytes which will be written to the file.
+ * This must be the same length or longer than described in the provided file
+ * structure's @c size property.
+ *
+ * @return A boolean value representing whether or not the file was written to
+ * successfully. On failure, a message will be posted to @c stderr alongside the
+ * current @c ERRNO value. This function typically fails because of IO errors.
+ */
+[[gnu::nonnull(1, 2)]] [[nodiscard("Expression result unchecked.")]]
+bool ageratum_writeFile(const ageratum_file_t *const file,
+                        const char *const contents);
 
+/**
+ * @fn bool ageratum_getFileSize(ageratum_file_t *file)
+ * @brief Get the size of the given file in bytes. The given file's handle must
+ * be valid.
+ * @since v0.0.0.13
+ *
+ * @param[in, out] file The file structure to be operated on. The file's @c size
+ * property is set by this function.
+ *
+ * @return A boolean value representing whether or not the file's size was
+ * polled successfully. On failure, a message will be posted to @c stderr
+ * alongside the current @c ERRNO value. This function typically fails because
+ * of IO errors.
+ */
+[[gnu::nonnull(1)]] [[nodiscard("Expression result unchecked.")]]
 bool ageratum_getFileSize(ageratum_file_t *file);
 
+/**
+ * @fn bool ageratum_executeFile(const ageratum_file_t *const file, const char
+ * *const *const argv, size_t argc, int *status)
+ * @brief Execute the given file as a child process. The given file must have a
+ * valid basename and point to a file which the process has execution rights
+ * over.
+ * @since v0.0.0.14
+ *
+ * @param[in] file The file structure to be operated on.
+ * @param[in] argv Command-line arguments to be provided to the executable.
+ * @param[in] argc The count of arguments provided.
+ * @param[out] status The return status of the child process, should it return
+ * from execution properly.
+ *
+ * @return A boolean value representing whether or not the file was executed
+ * successfully. On failure, a message will be posted to @c stderr alongside the
+ * current @c ERRNO value. This function typically fails because of child
+ * process-related errors.
+ */
+[[gnu::nonnull(1, 2, 4)]] [[nodiscard("Expression result unchecked.")]]
 bool ageratum_executeFile(const ageratum_file_t *const file,
                           const char *const *const argv, size_t argc,
                           int *status);
 
-// TODO: "Workflow" functionality, where this can be generalized into a
-// process
-// TODO: for many different file types.
+/**
+ * @fn bool ageratum_glslToSPIRV(const ageratum_file_t *const file)
+ * @brief Compile a given GLSL shader file to a SPIRV output utilizing the @c
+ * glslang executable. This function will throw errors unless the @c glslang
+ * executable is available on the current system. The given GLSL shader file
+ * must have a valid basename.
+ * @since v0.0.0.14
+ *
+ * @param[in] file The file structure to be operated on.
+ *
+ * @return A boolean value representing whether or not the file was compiled
+ * successfully. On failure, a message will be posted to @c stderr alongside the
+ * current @c ERRNO value. This function typically fails because of GLSL
+ * validation errors or missing files.
+ */
+[[gnu::nonnull(1)]] [[gnu::cold]] [[nodiscard("Expression result unchecked.")]]
 bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -273,7 +399,6 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 // ////////////////////////////////////////////////////////////////////////////
 #ifdef AGERATUM_IMPLEMENTATION
 
-#include <WLLogging.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -386,16 +511,6 @@ bool ageratum_openFile(ageratum_file_t *file,
     return true;
 }
 
-inline bool ageratum_closeFile(ageratum_file_t *file)
-{
-    if (__builtin_expect(fclose(file->handle) != 0, 0))
-    {
-        waterlily_log(ERROR, "Failed to close file '%s'.", file->basename);
-        return false;
-    }
-    return true;
-}
-
 bool ageratum_getFileSize(ageratum_file_t *file)
 {
     struct stat stats;
@@ -410,7 +525,7 @@ bool ageratum_getFileSize(ageratum_file_t *file)
     return true;
 }
 
-bool ageratum_loadFile(ageratum_file_t *file, char *contents)
+bool ageratum_loadFile(const ageratum_file_t *const file, char *contents)
 {
     if (__builtin_expect(
             fread(contents, 1, file->size, file->handle) != file->size, 0))
@@ -423,7 +538,8 @@ bool ageratum_loadFile(ageratum_file_t *file, char *contents)
     return true;
 }
 
-bool ageratum_writeFile(ageratum_file_t *file, const char *const contents)
+bool ageratum_writeFile(const ageratum_file_t *const file,
+                        const char *const contents)
 {
     if (__builtin_expect(
             fwrite(contents, 1, file->size, file->handle) != file->size, 0))
