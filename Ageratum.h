@@ -14,7 +14,7 @@
 #ifndef AGERATUM_H
 #define AGERATUM_H
 
-#include <WLLogging.h>
+#include <Primrose.h>
 #define __need_size_t
 #include <stddef.h>
 #include <stdio.h>
@@ -49,7 +49,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 33
+#define AGERATUM_TWEAK_VERSION 34
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -289,10 +289,10 @@ static inline bool ageratum_closeFile(const ageratum_file_t *const file)
 {
     if (__builtin_expect(fclose(file->handle) != 0, 0))
     {
-        waterlily_log(ERROR, "Failed to close file '%s'.", file->basename);
+        primrose_log(ERROR, "Failed to close file '%s'.", file->basename);
         return false;
     }
-    waterlily_log(VERBOSE_OK, "Closed file '%s'.", file->basename);
+    primrose_log(VERBOSE_OK, "Closed file '%s'.", file->basename);
     return true;
 }
 
@@ -526,10 +526,10 @@ bool ageratum_openFile(ageratum_file_t *file,
     file->handle = fopen(path, mode);
     if (__builtin_expect(file->handle == nullptr, 0))
     {
-        waterlily_log(ERROR, "Failed to open file '%s'.", path);
+        primrose_log(ERROR, "Failed to open file '%s'.", path);
         return false;
     }
-    waterlily_log(VERBOSE_OK, "Opened file '%s'.", path);
+    primrose_log(VERBOSE_OK, "Opened file '%s'.", path);
     return true;
 }
 
@@ -539,12 +539,12 @@ bool ageratum_getFileSize(ageratum_file_t *file)
     // Nearly 10x faster than fseek/ftell in my tests.
     if (__builtin_expect(fstat(fileno(file->handle), &stats) == -1, 0))
     {
-        waterlily_log(ERROR, "Failed to stat file '%s'.", file->basename);
+        primrose_log(ERROR, "Failed to stat file '%s'.", file->basename);
         return false;
     }
     file->size = stats.st_size;
-    waterlily_log(VERBOSE_OK, "Got size of file '%s': %zu.", file->basename,
-                  file->size);
+    primrose_log(VERBOSE_OK, "Got size of file '%s': %zu.", file->basename,
+                 file->size);
     return true;
 }
 
@@ -553,12 +553,12 @@ bool ageratum_loadFile(const ageratum_file_t *const file, char *contents)
     if (__builtin_expect(
             fread(contents, 1, file->size, file->handle) != file->size, 0))
     {
-        waterlily_log(ERROR, "Failed to properly read file '%s'.",
-                      file->basename);
+        primrose_log(ERROR, "Failed to properly read file '%s'.",
+                     file->basename);
         return false;
     }
-    waterlily_log(VERBOSE_OK, "Loaded %zu bytes of file '%s'.", file->size,
-                  file->basename);
+    primrose_log(VERBOSE_OK, "Loaded %zu bytes of file '%s'.", file->size,
+                 file->basename);
     return true;
 }
 
@@ -568,11 +568,11 @@ bool ageratum_writeFile(const ageratum_file_t *const file,
     if (__builtin_expect(
             fwrite(contents, 1, file->size, file->handle) != file->size, 0))
     {
-        waterlily_log(ERROR, "Failed to write to file '%s'.", file->basename);
+        primrose_log(ERROR, "Failed to write to file '%s'.", file->basename);
         return false;
     }
-    waterlily_log(VERBOSE_OK, "Wrote %zu bytes to file '%s'.", file->size,
-                  file->basename);
+    primrose_log(VERBOSE_OK, "Wrote %zu bytes to file '%s'.", file->size,
+                 file->basename);
     return true;
 }
 
@@ -585,14 +585,14 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
 
     if (__builtin_expect(access(path, X_OK) == -1, 0))
     {
-        waterlily_log(ERROR, "Cannot execute file '%s'.", path);
+        primrose_log(ERROR, "Cannot execute file '%s'.", path);
         return false;
     }
 
     pid_t pid = fork();
     if (__builtin_expect(pid == -1, 0))
     {
-        waterlily_log(ERROR, "Failed to fork process.");
+        primrose_log(ERROR, "Failed to fork process.");
         return false;
     }
 
@@ -606,7 +606,7 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
             pid == 0 && execve(path, (char *const *)trueArgv, nullptr) == -1,
             0))
     {
-        waterlily_log(ERROR, "Failed to execute file '%s'.", path);
+        primrose_log(ERROR, "Failed to execute file '%s'.", path);
         return false;
     }
 
@@ -614,22 +614,22 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
     pid_t waitStatus = waitpid(pid, &processStatus, 0);
     if (__builtin_expect(waitStatus == (pid_t)-1, 0))
     {
-        waterlily_log(WARNING, "Execution of '%s' interrupted by a signal.",
-                      path);
+        primrose_log(WARNING, "Execution of '%s' interrupted by a signal.",
+                     path);
         return false;
     }
 
     // This could very likely happen or not happen. Don't expect anything.
     if (!WIFEXITED(processStatus))
     {
-        waterlily_log(WARNING,
-                      "File '%s' ended execution with an unexpected result.",
-                      path);
+        primrose_log(WARNING,
+                     "File '%s' ended execution with an unexpected result.",
+                     path);
         return false;
     }
     *status = WEXITSTATUS(processStatus);
-    waterlily_log(VERBOSE_OK, "Executed file '%s'. Exited with status code %d.",
-                  file->basename, *status);
+    primrose_log(VERBOSE_OK, "Executed file '%s'. Exited with status code %d.",
+                 file->basename, *status);
     return true;
 }
 
@@ -656,11 +656,11 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file)
                                    .type = AGERATUM_SYSTEM};
     if (!ageratum_executeFile(&glslangFile, argv, 14, &status))
     {
-        waterlily_log(ERROR, "Couldn't compile shader '%s'. Code %d.", path,
-                      status);
+        primrose_log(ERROR, "Couldn't compile shader '%s'. Code %d.", path,
+                     status);
         return false;
     }
-    waterlily_log(VERBOSE_OK, "Compiled shader '%s'.", path);
+    primrose_log(VERBOSE_OK, "Compiled shader '%s'.", path);
     return true;
 }
 
