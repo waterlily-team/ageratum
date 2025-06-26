@@ -47,7 +47,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 25
+#define AGERATUM_TWEAK_VERSION 26
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -94,27 +94,119 @@
  */
 #define AGERATUM_MAX_PATH_LENGTH 128
 
+/**
+ * @enum ageratum_permissions
+ * @brief The various permissions that a file may be opened under. This is not a
+ * bitmask, each enum value corresponds to a different logic chain which is
+ * entirely exclusive from the others.
+ * @since v0.0.0.13
+ *
+ * @showenumvalues
+ */
 typedef enum ageratum_permissions
 {
+    /**
+     * @var ageratum_permissions AGERATUM_READ
+     * @brief Open the file in read-only mode.
+     * @since v0.0.0.13
+     */
     AGERATUM_READ,
+    /**
+     * @var ageratum_permissions AGERATUM_WRITE
+     * @brief Open the file in writing mode, with the file pointer at the
+     * beginning of the file. If the file doesn't exist, it will be created.
+     * @since v0.0.0.13
+     */
     AGERATUM_WRITE,
+    /**
+     * @var ageratum_permissions AGERATUM_APPEND
+     * @brief Open the file in writing mode, with the file pointer at the end of
+     * the file. If the file doesn't exist, it will be created.
+     * @since v0.0.0.13
+     */
     AGERATUM_APPEND,
+    /**
+     * @var ageratum_permissions AGERATUM_READWRITE
+     * @brief Open the file in reading and writing mode simultaneously, with the
+     * file pointer at the beginning of the file. If the file doesn't exist, it
+     * will be created.
+     * @since v0.0.0.13
+     */
     AGERATUM_READWRITE,
+    /**
+     * @var ageratum_permissions AGERATUM_READAPPEND
+     * @brief Open the file in reading and writing mode simultaneously, with the
+     * file pointer at the end of the file. If the file doesn't exist, it will
+     * be created.
+     * @since v0.0.0.15
+     */
     AGERATUM_READAPPEND,
 } ageratum_permissions_t;
 
+/**
+ * @enum ageratum_type
+ * @brief The various types of files that have specific handling cases within
+ * the library. This is not a bitmask.
+ * @since v0.0.0.12
+ *
+ * @showenumvalues
+ */
 typedef enum ageratum_type
 {
-    AGERATUM_UNKNOWN,
+    /**
+     * @var ageratum_type AGERATUM_TEXT
+     * @brief A text file. This has no special handling protocols; it's treated
+     * as a string of bytes. It comes with the extension ".txt".
+     * @since v0.0.0.1
+     */
     AGERATUM_TEXT,
+    /**
+     * @var ageratum_type AGERATUM_GLSL_VERTEX
+     * @brief A GLSL vertex shader file. This is one of the possible inputs for
+     * the GLSL->SPIRV workflow. It comes with the extension ".vert".
+     * @since v0.0.0.2
+     */
     AGERATUM_GLSL_VERTEX,
+    /**
+     * @var ageratum_type AGERATUM_GLSL_FRAGMENT
+     * @brief A GLSL fragment shader file. This is one of the possible inputs
+     * for the GLSL->SPIRV workflow. It comes with the extension ".frag".
+     * @since v0.0.0.2
+     */
     AGERATUM_GLSL_FRAGMENT,
+    /**
+     * @var ageratum_type AGERATUM_SPIRV_VERTEX
+     * @brief A SPIRV vertex shader file. This is treated as a string of bytes,
+     * and is the output for the GLSL->SPIRV workflow. It comes with the
+     * extension "-vert.spv".
+     * @since v0.0.0.13
+     */
     AGERATUM_SPIRV_VERTEX,
+    /**
+     * @var ageratum_type AGERATUM_SPIRV_FRAGMENT
+     * @brief A SPIRV fragment shader file. This is treated as a string of
+     * bytes, and is the output for the GLSL->SPIRV workflow. It comes with the
+     * extension "-frag.spv".
+     * @since v0.0.0.13
+     */
     AGERATUM_SPIRV_FRAGMENT,
+    /**
+     * @var ageratum_type AGERATUM_SYSTEM
+     * @brief A system executable file. If attempted to be loaded, this is
+     * handled as a string of bytes. This filetype can be used as an input for
+     * the @ref ageratum_executeFile function. This comes with no file
+     * extension.
+     * @since v0.0.0.14
+     */
     AGERATUM_SYSTEM,
 } ageratum_type_t;
 
-#define AGERATUM_TYPE_COUNT 7
+/**
+ * @def AGERATUM_TYPE_COUNT
+ * @brief The count of recognized filetypes by the library.
+ * @since v0.0.0.18
+ */
+#define AGERATUM_TYPE_COUNT 6
 
 typedef struct ageratum_file
 {
@@ -159,7 +251,6 @@ const char *const ageratum_shaderSourcePath = "Shaders/Source/";
 const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
 
 static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
-    [AGERATUM_UNKNOWN] = {nullptr, nullptr},
     [AGERATUM_TEXT] = {nullptr, ".txt"},
     [AGERATUM_GLSL_VERTEX] = {ageratum_shaderSourcePath, ".vert"},
     [AGERATUM_GLSL_FRAGMENT] = {ageratum_shaderSourcePath, ".frag"},

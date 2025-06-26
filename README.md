@@ -4,7 +4,7 @@
 
 ### Ageratum
 ![loc_badge](https://github.com/waterlily-team/ageratum/blob/badges/loc.svg)
-![latest_release_badge](https://img.shields.io/github/v/release/waterlily-team/ageratum?label=Latest&include_preleases=true)
+![latest_release_badge](https://img.shields.io/github/v/release/waterlily-team/ageratum?include_prereleases&label=Latest%20Version&color=blue)
 
 A small, incredibly specialized [asset library](https://en.wikipedia.org/wiki/Digital_asset_management) for handling things like [tilesets](https://en.wikipedia.org/wiki/Tile-based_video_game#Tile_set), generic images (`JPEG`, `PNG`, `BMP`), music, etcetera. It's built to be performant but incredibly simple, and has but a single file, which acts duly as a header and implementation file. Ageratum depends on nothing but the [C standard library](https://en.wikipedia.org/wiki/C_standard_library).
 
