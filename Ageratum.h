@@ -49,7 +49,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 30
+#define AGERATUM_TWEAK_VERSION 31
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -409,7 +409,6 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
  * rest of the paths for deduplication reasons.
  * @since v0.0.0.13
  */
-[[gnu::visibility("hidden")]]
 const char *const ageratum_shaderSourcePath = "Shaders/Source/";
 
 /**
@@ -418,7 +417,6 @@ const char *const ageratum_shaderSourcePath = "Shaders/Source/";
  * from the rest of the paths for deduplication reasons.
  * @since v0.0.0.13
  */
-[[gnu::visibility("hidden")]]
 const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
 
 /**
@@ -427,7 +425,6 @@ const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
  * the library.
  * @since v0.0.0.18
  */
-[[gnu::visibility("hidden")]]
 static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
     [AGERATUM_TEXT] = {nullptr, ".txt"},
     [AGERATUM_GLSL_VERTEX] = {ageratum_shaderSourcePath, ".vert"},
@@ -450,7 +447,7 @@ static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
  * @param[in, out] consumed The amount of characters that have been consumed
  * within @c dest already.
  */
-[[gnu::nonnull(1, 3)]] [[gnu::visibility("hidden")]]
+[[gnu::nonnull(1, 3)]]
 static inline void ageratum_strncat(char *dest, const char *const src,
                                     size_t *consumed)
 {
@@ -504,7 +501,7 @@ static inline void ageratum_strncat(char *dest, const char *const src,
  * @param[out] path The generated path. This buffer should be at least as large
  * as specified in @ref AGERATUM_MAX_PATH_LENGTH.
  */
-[[gnu::nonnull(1, 2)]] [[gnu::flatten]] [[gnu::visibility("hidden")]]
+[[gnu::nonnull(1, 2)]] [[gnu::flatten]]
 static inline void ageratum_createFilepath(const ageratum_file_t *const file,
                                            char *path)
 {
