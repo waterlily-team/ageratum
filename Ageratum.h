@@ -14,27 +14,32 @@
 #ifndef AGERATUM_H
 #define AGERATUM_H
 
-#define AGERATUM_MAJOR_VERSION 0
-#define AGERATUM_MINOR_VERSION 0
-#define AGERATUM_PATCH_VERSION 0
-#define AGERATUM_TWEAK_VERSION 14
-
 #define __need_size_t
 #include <stddef.h>
 
+#define AGERATUM_MAJOR_VERSION 0
+#define AGERATUM_MINOR_VERSION 0
+#define AGERATUM_PATCH_VERSION 0
+#define AGERATUM_TWEAK_VERSION 15
+
+#ifndef AGERATUM_BASE_DIRECTORY
 #define AGERATUM_BASE_DIRECTORY "./Resources/"
+#endif
+
+#ifndef AGERATUM_SYSTEM_DIRECTORY
 #define AGERATUM_SYSTEM_DIRECTORY "/usr/bin/"
+#endif
+
 #define AGERATUM_MAX_PATH_LENGTH 128
 #define AGERATUM_MAX_FILENAME_LENGTH 32
 
-typedef unsigned char ageratum_byte_t;
-
 typedef enum ageratum_permissions
 {
-    AGERATUM_READ = 114,
-    AGERATUM_WRITE = 119,
-    AGERATUM_APPEND = 97,
-    AGERATUM_READWRITE = 0,
+    AGERATUM_READ,
+    AGERATUM_WRITE,
+    AGERATUM_APPEND,
+    AGERATUM_READWRITE,
+    AGERATUM_APPENDWRITE,
 } ageratum_permissions_t;
 
 typedef enum ageratum_type
@@ -129,13 +134,15 @@ bool ageratum_openFile(ageratum_file_t *file,
     char path[AGERATUM_MAX_PATH_LENGTH];
     ageratum_createFilepath(file, path);
 
-    char mode[3];
-    if (__builtin_expect(permissions == AGERATUM_READWRITE, 0))
+    char *mode;
+    switch (permissions)
     {
-        mode[0] = 'w';
-        mode[1] = '+';
+        case AGERATUM_READ:        mode = "r"; break;
+        case AGERATUM_WRITE:       mode = "w"; break;
+        case AGERATUM_APPEND:      mode = "a"; break;
+        case AGERATUM_READWRITE:   mode = "w+"; break;
+        case AGERATUM_APPENDWRITE: mode = "a+"; break;
     }
-    else mode[0] = permissions;
 
     file->handle = (void *)fopen(path, mode);
     if (__builtin_expect(file->handle == nullptr, 0))
