@@ -47,7 +47,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 26
+#define AGERATUM_TWEAK_VERSION 27
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
