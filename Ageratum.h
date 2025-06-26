@@ -49,7 +49,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 32
+#define AGERATUM_TWEAK_VERSION 33
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -285,13 +285,14 @@ bool ageratum_openFile(ageratum_file_t *file,
  * flushing the file's buffer.
  */
 [[gnu::nonnull(1)]] [[gnu::hot]] [[nodiscard("Expression result unchecked.")]]
-inline bool ageratum_closeFile(const ageratum_file_t *const file)
+static inline bool ageratum_closeFile(const ageratum_file_t *const file)
 {
     if (__builtin_expect(fclose(file->handle) != 0, 0))
     {
         waterlily_log(ERROR, "Failed to close file '%s'.", file->basename);
         return false;
     }
+    waterlily_log(VERBOSE_OK, "Closed file '%s'.", file->basename);
     return true;
 }
 
@@ -302,10 +303,12 @@ inline bool ageratum_closeFile(const ageratum_file_t *const file)
  * via @ref ageratum_getFileSize.
  * @since v0.0.0.1
  *
+ * @remark This function does not add a terminating NUL character to the loaded
+ * bytes.
+ *
  * @param[in] file The file structure to be operated on.
  * @param[out] contents An array of bytes in which the file's contents will be
- * inserted. This must be large enough to store the file's entire contents plus
- * a terminating null character.
+ * inserted. This must be large enough to store the file's entire contents.
  *
  * @return A boolean value representing whether or not the file was loaded
  * successfully. On failure, a message will be posted to @c stderr alongside the
@@ -539,8 +542,9 @@ bool ageratum_getFileSize(ageratum_file_t *file)
         waterlily_log(ERROR, "Failed to stat file '%s'.", file->basename);
         return false;
     }
-    waterlily_log(VERBOSE_OK, "Got stats of file '%s'.", file->basename);
     file->size = stats.st_size;
+    waterlily_log(VERBOSE_OK, "Got size of file '%s': %zu.", file->basename,
+                  file->size);
     return true;
 }
 
@@ -553,7 +557,8 @@ bool ageratum_loadFile(const ageratum_file_t *const file, char *contents)
                       file->basename);
         return false;
     }
-    contents[file->size] = 0;
+    waterlily_log(VERBOSE_OK, "Loaded %zu bytes of file '%s'.", file->size,
+                  file->basename);
     return true;
 }
 
@@ -623,6 +628,8 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
         return false;
     }
     *status = WEXITSTATUS(processStatus);
+    waterlily_log(VERBOSE_OK, "Executed file '%s'. Exited with status code %d.",
+                  file->basename, *status);
     return true;
 }
 
@@ -653,6 +660,7 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file)
                       status);
         return false;
     }
+    waterlily_log(VERBOSE_OK, "Compiled shader '%s'.", path);
     return true;
 }
 
