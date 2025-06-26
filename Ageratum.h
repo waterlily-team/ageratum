@@ -208,11 +208,42 @@ typedef enum ageratum_type
  */
 #define AGERATUM_TYPE_COUNT 6
 
+/**
+ * @struct ageratum_file Ageratum.h "Ageratum.h"
+ * @brief The core file structure for the library. This contains all important
+ * information about a generic file, including its type, filename, handle, and
+ * size.
+ * @since v0.0.0.1
+ */
 typedef struct ageratum_file
 {
-    const char *const filename;
+    /**
+     * @property basename
+     * @brief The basename of the file.
+     * @since v0.0.0.1
+     */
+    char *basename;
+    /**
+     * @property type
+     * @brief The type of the file.
+     * @since v0.0.0.13
+     */
     ageratum_type_t type;
+    /**
+     * @property handle
+     * @brief The underlying handle of the file within the filesystem.
+     * @since v0.0.0.13
+     *
+     * @remark This is actually of the type FILE*, but in order to prevent a
+     * mostly unnessecary @c stdio.h include, it's just referenced as a void
+     * pointer.
+     */
     void *handle;
+    /**
+     * @property size
+     * @brief The size of the file in bytes.
+     * @since v0.0.0.1
+     */
     size_t size;
 } ageratum_file_t;
 
@@ -312,7 +343,7 @@ static void ageratum_createFilepath(const ageratum_file_t *const file,
         for (size_t i = 0; i < AGERATUM_SYSTEM_DIRECTORY_LENGTH; i++)
             path[i] = baseDirectory[i];
         consumed = AGERATUM_SYSTEM_DIRECTORY_LENGTH;
-        ageratum_strncat(path, file->filename, &consumed);
+        ageratum_strncat(path, file->basename, &consumed);
     }
     else
     {
@@ -324,7 +355,7 @@ static void ageratum_createFilepath(const ageratum_file_t *const file,
 
         auto info = ageratum_infos[file->type];
         ageratum_strncat(path, info[0], &consumed);
-        ageratum_strncat(path, file->filename, &consumed);
+        ageratum_strncat(path, file->basename, &consumed);
         ageratum_strncat(path, info[1], &consumed);
     }
 }
@@ -359,7 +390,7 @@ inline bool ageratum_closeFile(ageratum_file_t *file)
 {
     if (__builtin_expect(fclose(file->handle) != 0, 0))
     {
-        waterlily_log(ERROR, "Failed to close file '%s'.", file->filename);
+        waterlily_log(ERROR, "Failed to close file '%s'.", file->basename);
         return false;
     }
     return true;
@@ -371,10 +402,10 @@ bool ageratum_getFileSize(ageratum_file_t *file)
     // Nearly 10x faster than fseek/ftell in my tests.
     if (__builtin_expect(fstat(fileno(file->handle), &stats) == -1, 0))
     {
-        waterlily_log(ERROR, "Failed to stat file '%s'.", file->filename);
+        waterlily_log(ERROR, "Failed to stat file '%s'.", file->basename);
         return false;
     }
-    waterlily_log(VERBOSE_OK, "Got stats of file '%s'.", file->filename);
+    waterlily_log(VERBOSE_OK, "Got stats of file '%s'.", file->basename);
     file->size = stats.st_size;
     return true;
 }
@@ -385,7 +416,7 @@ bool ageratum_loadFile(ageratum_file_t *file, char *contents)
             fread(contents, 1, file->size, file->handle) != file->size, 0))
     {
         waterlily_log(ERROR, "Failed to properly read file '%s'.",
-                      file->filename);
+                      file->basename);
         return false;
     }
     contents[file->size] = 0;
@@ -397,11 +428,11 @@ bool ageratum_writeFile(ageratum_file_t *file, const char *const contents)
     if (__builtin_expect(
             fwrite(contents, 1, file->size, file->handle) != file->size, 0))
     {
-        waterlily_log(ERROR, "Failed to write to file '%s'.", file->filename);
+        waterlily_log(ERROR, "Failed to write to file '%s'.", file->basename);
         return false;
     }
     waterlily_log(VERBOSE_OK, "Wrote %zu bytes to file '%s'.", file->size,
-                  file->filename);
+                  file->basename);
     return true;
 }
 
