@@ -20,7 +20,7 @@
 #define AGERATUM_MAJOR_VERSION 0
 #define AGERATUM_MINOR_VERSION 0
 #define AGERATUM_PATCH_VERSION 0
-#define AGERATUM_TWEAK_VERSION 15
+#define AGERATUM_TWEAK_VERSION 16
 
 #ifndef AGERATUM_BASE_DIRECTORY
 #define AGERATUM_BASE_DIRECTORY "./Resources/"
@@ -87,24 +87,26 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 #ifdef AGERATUM_IMPLEMENTATION
 
 #include <WLLogging.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+const char *const ageratum_shaderSourcePath = "Shaders/Source/";
+const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
+
 static const char *const ageratum_subdirectories[] = {
-    [AGERATUM_UNKNOWN] = 0,
-    [AGERATUM_TEXT] = 0,
-    [AGERATUM_GLSL_VERTEX] = "Shaders/Source/",
-    [AGERATUM_GLSL_FRAGMENT] = "Shaders/Source/",
-    [AGERATUM_SPIRV_VERTEX] = "Shaders/Compiled/",
-    [AGERATUM_SPIRV_FRAGMENT] = "Shaders/Compiled/",
+    [AGERATUM_UNKNOWN] = "",
+    [AGERATUM_TEXT] = "",
+    [AGERATUM_GLSL_VERTEX] = ageratum_shaderSourcePath,
+    [AGERATUM_GLSL_FRAGMENT] = ageratum_shaderSourcePath,
+    [AGERATUM_SPIRV_VERTEX] = ageratum_shaderCompiledPath,
+    [AGERATUM_SPIRV_FRAGMENT] = ageratum_shaderCompiledPath,
     [AGERATUM_SYSTEM] = "",
 };
 
 static const char *const ageratum_extensions[] = {
-    [AGERATUM_UNKNOWN] = 0,
+    [AGERATUM_UNKNOWN] = "",
     [AGERATUM_TEXT] = ".txt",
     [AGERATUM_GLSL_VERTEX] = ".vert",
     [AGERATUM_GLSL_FRAGMENT] = ".frag",
@@ -137,11 +139,11 @@ bool ageratum_openFile(ageratum_file_t *file,
     char *mode;
     switch (permissions)
     {
-        case AGERATUM_READ:        mode = "r"; break;
-        case AGERATUM_WRITE:       mode = "w"; break;
-        case AGERATUM_APPEND:      mode = "a"; break;
-        case AGERATUM_READWRITE:   mode = "w+"; break;
-        case AGERATUM_APPENDWRITE: mode = "a+"; break;
+        case AGERATUM_READ:      mode = "r"; break;
+        case AGERATUM_WRITE:     mode = "w"; break;
+        case AGERATUM_APPEND:    mode = "a"; break;
+        case AGERATUM_READWRITE: mode = "w+"; break;
+        default:                 mode = "a+"; break;
     }
 
     file->handle = (void *)fopen(path, mode);
