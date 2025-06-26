@@ -49,7 +49,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 29
+#define AGERATUM_TWEAK_VERSION 30
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -397,7 +397,7 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 ///////////////////////////////////////////////////////////////////////////////
 //                              IMPLEMENTATION                               //
 // ////////////////////////////////////////////////////////////////////////////
-#ifndef AGERATUM_IMPLEMENTATION
+#ifdef AGERATUM_IMPLEMENTATION
 
 #include <sys/stat.h>
 #include <sys/wait.h>
