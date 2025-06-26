@@ -20,7 +20,7 @@
 #define AGERATUM_MAJOR_VERSION 0
 #define AGERATUM_MINOR_VERSION 0
 #define AGERATUM_PATCH_VERSION 0
-#define AGERATUM_TWEAK_VERSION 19
+#define AGERATUM_TWEAK_VERSION 20
 
 #ifndef AGERATUM_BASE_DIRECTORY
 #define AGERATUM_BASE_DIRECTORY "./Assets/"
@@ -98,6 +98,19 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 // TODO: Proper benchmarking module.
 // #include <time.h>
 
+const char *const ageratum_shaderSourcePath = "Shaders/Source/";
+const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
+
+static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
+    [AGERATUM_UNKNOWN] = {nullptr, nullptr},
+    [AGERATUM_TEXT] = {nullptr, ".txt"},
+    [AGERATUM_GLSL_VERTEX] = {ageratum_shaderSourcePath, ".vert"},
+    [AGERATUM_GLSL_FRAGMENT] = {ageratum_shaderSourcePath, ".frag"},
+    [AGERATUM_SPIRV_VERTEX] = {ageratum_shaderCompiledPath, "-vert.spv"},
+    [AGERATUM_SPIRV_FRAGMENT] = {ageratum_shaderCompiledPath, "-frag.spv"},
+    [AGERATUM_SYSTEM] = {nullptr, nullptr},
+};
+
 static inline void ageratum_strncat(char *dest, const char *const src,
                                     size_t *consumed)
 {
@@ -113,19 +126,6 @@ static inline void ageratum_strncat(char *dest, const char *const src,
         (*consumed)++;
     }
 }
-
-const char *const ageratum_shaderSourcePath = "Shaders/Source/";
-const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
-
-static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
-    [AGERATUM_UNKNOWN] = {nullptr, nullptr},
-    [AGERATUM_TEXT] = {nullptr, ".txt"},
-    [AGERATUM_GLSL_VERTEX] = {ageratum_shaderSourcePath, ".vert"},
-    [AGERATUM_GLSL_FRAGMENT] = {ageratum_shaderSourcePath, ".frag"},
-    [AGERATUM_SPIRV_VERTEX] = {ageratum_shaderCompiledPath, "-vert.spv"},
-    [AGERATUM_SPIRV_FRAGMENT] = {ageratum_shaderCompiledPath, "-frag.spv"},
-    [AGERATUM_SYSTEM] = {nullptr, nullptr},
-};
 
 // Benchmarks:
 // LibC strncat
@@ -197,7 +197,7 @@ bool ageratum_openFile(ageratum_file_t *file,
         default:                 mode = "a+"; break;
     }
 
-    file->handle = (void *)fopen(path, mode);
+    file->handle = fopen(path, mode);
     if (__builtin_expect(file->handle == nullptr, 0))
     {
         waterlily_log(ERROR, "Failed to open file '%s'.", path);
@@ -221,21 +221,33 @@ bool ageratum_getFileSize(ageratum_file_t *file)
 {
     struct stat stats;
     // Nearly 10x faster than fseek/ftell in my tests.
-    fstat(fileno(file->handle), &stats);
+    if (__builtin_expect(fstat(fileno(file->handle), &stats) == -1, 0))
+    {
+        waterlily_log(ERROR, "Failed to stat file '%s'.", file->filename);
+        return false;
+    }
+    waterlily_log(VERBOSE_OK, "Got stats of file '%s'.", file->filename);
     file->size = stats.st_size;
     return true;
 }
 
 bool ageratum_loadFile(ageratum_file_t *file, char *contents)
 {
-    fread(contents, 1, file->size, file->handle);
+    if (__builtin_expect(
+            fread(contents, 1, file->size, file->handle) != file->size, 0))
+    {
+        waterlily_log(ERROR, "Failed to properly read file '%s'.",
+                      file->filename);
+        return false;
+    }
     contents[file->size] = 0;
     return true;
 }
 
 bool ageratum_writeFile(ageratum_file_t *file, const char *const contents)
 {
-    if (fwrite(contents, 1, file->size, file->handle) != file->size)
+    if (__builtin_expect(
+            fwrite(contents, 1, file->size, file->handle) != file->size, 0))
     {
         waterlily_log(ERROR, "Failed to write to file '%s'.", file->filename);
         return false;
@@ -252,14 +264,14 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
     char path[AGERATUM_MAX_PATH_LENGTH];
     ageratum_createFilepath(file, path);
 
-    if (access(path, X_OK) == -1)
+    if (__builtin_expect(access(path, X_OK) == -1, 0))
     {
         waterlily_log(ERROR, "Cannot execute file '%s'.", path);
         return false;
     }
 
     pid_t pid = fork();
-    if (pid == -1)
+    if (__builtin_expect(pid == -1, 0))
     {
         waterlily_log(ERROR, "Failed to fork process.");
         return false;
@@ -271,7 +283,9 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
     trueArgv[argc + 1] = nullptr;
 
     // This is executed within the new process.
-    if (pid == 0 && execve(path, (char *const *)trueArgv, nullptr) == -1)
+    if (__builtin_expect(
+            pid == 0 && execve(path, (char *const *)trueArgv, nullptr) == -1,
+            0))
     {
         waterlily_log(ERROR, "Failed to execute file '%s'.", path);
         return false;
@@ -279,12 +293,14 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
 
     int processStatus = 0;
     pid_t waitStatus = waitpid(pid, &processStatus, 0);
-    if (waitStatus == (pid_t)-1)
+    if (__builtin_expect(waitStatus == (pid_t)-1, 0))
     {
-        waterlily_log(WARNING, "Unable to wait for execution of '%s'.", path);
+        waterlily_log(WARNING, "Execution of '%s' interrupted by a signal.",
+                      path);
         return false;
     }
 
+    // This could very likely happen or not happen. Don't expect anything.
     if (!WIFEXITED(processStatus))
     {
         waterlily_log(WARNING,
@@ -296,11 +312,12 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
     return true;
 }
 
+// Benchmarks:
+// Full (original):
+// 0.103485 0.107282 0.106701
+// 0.098565 0.106067 0.099129
 bool ageratum_glslToSPIRV(const ageratum_file_t *const file)
 {
-    ageratum_file_t glslangFile = {.filename = "glslang",
-                                   .type = AGERATUM_SYSTEM};
-
     char path[AGERATUM_MAX_PATH_LENGTH];
     ageratum_createFilepath(file, path);
 
@@ -316,14 +333,16 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file)
         "--glsl-version", "460",       "--spirv-val", "--lto", "--quiet", "-o",
         outputPath,       path,
     };
+
     int status = 0;
+    ageratum_file_t glslangFile = {.filename = "glslang",
+                                   .type = AGERATUM_SYSTEM};
     if (!ageratum_executeFile(&glslangFile, argv, 14, &status))
     {
         waterlily_log(ERROR, "Couldn't compile shader '%s'. Code %d.", path,
                       status);
         return false;
     }
-
     return true;
 }
 
