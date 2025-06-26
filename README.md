@@ -41,10 +41,10 @@ Ageratum supports the following formats of media, alongside "unknown" files whic
 ---
 
 #### Usage
-You can use Ageratum by including the main header file in any file in your project. However, in **one** of these files, define the `WLASSETS_IMPLEMENTATION` macro to add the implementation as well. An example would be as follows;
+You can use Ageratum by including the main header file in any file in your project. However, in **one** of these files, define the `AGERATUM_IMPLEMENTATION` macro to add the implementation as well. An example would be as follows;
 
 ```c
-#define WLASSETS_IMPLEMENTATION
+#define AGERATUM_IMPLEMENTATION
 #include <Ageratum.h>
 
 int main(void) {
