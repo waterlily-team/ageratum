@@ -17,15 +17,40 @@
 #define __need_size_t
 #include <stddef.h>
 
+/**
+ * @def AGERATUM_MAJOR_VERSION
+ * @brief The major (X.x.x.x) version of the library. This increments after a
+ * huge overhaul or large project completion.
+ * @since v0.0.0.12
+ */
 #define AGERATUM_MAJOR_VERSION 0
-#define AGERATUM_MINOR_VERSION 0
-#define AGERATUM_PATCH_VERSION 0
-#define AGERATUM_TWEAK_VERSION 20
 
-#ifndef AGERATUM_BASE_DIRECTORY
+/**
+ * @def AGERATUM_MINOR_VERSION
+ * @brief The minor (x.X.x.x) version of the library. This increments after a
+ * project completion.
+ * @since v0.0.0.12
+ */
+#define AGERATUM_MINOR_VERSION 0
+
+/**
+ * @def AGERATUM_PATCH_VERSION
+ * @brief The patch (x.x.X.x) version of the library. This increments when a
+ * featureset is properly implemented.
+ * @since v0.0.0.12
+ */
+#define AGERATUM_PATCH_VERSION 0
+
+/**
+ * @def AGERATUM_TWEAK_VERSION
+ * @brief The tweak (x.x.x.X) version of the library. This increments after any
+ * new code is committed.
+ * @since v0.0.0.12
+ */
+#define AGERATUM_TWEAK_VERSION 21
+
 #define AGERATUM_BASE_DIRECTORY "./Assets/"
 #define AGERATUM_BASE_DIRECTORY_LENGTH sizeof(AGERATUM_BASE_DIRECTORY) - 1
-#endif
 
 #ifndef AGERATUM_SYSTEM_DIRECTORY
 #define AGERATUM_SYSTEM_DIRECTORY "/usr/bin/"
@@ -94,9 +119,6 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
-// TODO: Proper benchmarking module.
-// #include <time.h>
 
 const char *const ageratum_shaderSourcePath = "Shaders/Source/";
 const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
