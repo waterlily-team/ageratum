@@ -47,7 +47,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 24
+#define AGERATUM_TWEAK_VERSION 25
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -85,8 +85,14 @@
  */
 #define AGERATUM_SYSTEM_DIRECTORY_LENGTH sizeof(AGERATUM_SYSTEM_DIRECTORY) - 1
 
+/**
+ * @def AGERATUM_MAX_PATH_LENGTH
+ * @brief The max length in characters (plus the null terminator) a path can be
+ * in order to be properly handled by the library. This is defined for
+ * efficiency and performance reasons.
+ * @since v0.0.0.13
+ */
 #define AGERATUM_MAX_PATH_LENGTH 128
-#define AGERATUM_MAX_FILENAME_LENGTH 32
 
 typedef enum ageratum_permissions
 {
@@ -94,7 +100,7 @@ typedef enum ageratum_permissions
     AGERATUM_WRITE,
     AGERATUM_APPEND,
     AGERATUM_READWRITE,
-    AGERATUM_APPENDWRITE,
+    AGERATUM_READAPPEND,
 } ageratum_permissions_t;
 
 typedef enum ageratum_type
