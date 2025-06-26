@@ -20,7 +20,7 @@
 #define AGERATUM_MAJOR_VERSION 0
 #define AGERATUM_MINOR_VERSION 0
 #define AGERATUM_PATCH_VERSION 0
-#define AGERATUM_TWEAK_VERSION 17
+#define AGERATUM_TWEAK_VERSION 18
 
 #ifndef AGERATUM_BASE_DIRECTORY
 #define AGERATUM_BASE_DIRECTORY "./Assets/"
@@ -53,6 +53,8 @@ typedef enum ageratum_type
     AGERATUM_SPIRV_FRAGMENT,
     AGERATUM_SYSTEM,
 } ageratum_type_t;
+
+#define AGERATUM_TYPE_COUNT 7
 
 typedef struct ageratum_file
 {
@@ -114,24 +116,14 @@ static inline void ageratum_strncat(char *dest, const char *const src,
 const char *const ageratum_shaderSourcePath = "Shaders/Source/";
 const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
 
-static const char *const ageratum_subdirectories[] = {
-    [AGERATUM_UNKNOWN] = nullptr,
-    [AGERATUM_TEXT] = nullptr,
-    [AGERATUM_GLSL_VERTEX] = ageratum_shaderSourcePath,
-    [AGERATUM_GLSL_FRAGMENT] = ageratum_shaderSourcePath,
-    [AGERATUM_SPIRV_VERTEX] = ageratum_shaderCompiledPath,
-    [AGERATUM_SPIRV_FRAGMENT] = ageratum_shaderCompiledPath,
-    [AGERATUM_SYSTEM] = nullptr,
-};
-
-static const char *const ageratum_extensions[] = {
-    [AGERATUM_UNKNOWN] = nullptr,
-    [AGERATUM_TEXT] = ".txt",
-    [AGERATUM_GLSL_VERTEX] = ".vert",
-    [AGERATUM_GLSL_FRAGMENT] = ".frag",
-    [AGERATUM_SPIRV_VERTEX] = "-vert.spv",
-    [AGERATUM_SPIRV_FRAGMENT] = "-frag.spv",
-    [AGERATUM_SYSTEM] = nullptr,
+static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
+    [AGERATUM_UNKNOWN] = {nullptr, nullptr},
+    [AGERATUM_TEXT] = {nullptr, ".txt"},
+    [AGERATUM_GLSL_VERTEX] = {ageratum_shaderSourcePath, ".vert"},
+    [AGERATUM_GLSL_FRAGMENT] = {ageratum_shaderSourcePath, ".frag"},
+    [AGERATUM_SPIRV_VERTEX] = {ageratum_shaderCompiledPath, "-vert.spv"},
+    [AGERATUM_SPIRV_FRAGMENT] = {ageratum_shaderCompiledPath, "-frag.spv"},
+    [AGERATUM_SYSTEM] = {nullptr, nullptr},
 };
 
 static void ageratum_createFilepath(const ageratum_file_t *const file,
@@ -176,9 +168,10 @@ static void ageratum_createFilepath(const ageratum_file_t *const file,
         consumed = AGERATUM_BASE_DIRECTORY_LENGTH;
     }
 
-    ageratum_strncat(path, ageratum_subdirectories[file->type], &consumed);
+    auto info = ageratum_infos[file->type];
+    ageratum_strncat(path, info[0], &consumed);
     ageratum_strncat(path, file->filename, &consumed);
-    ageratum_strncat(path, ageratum_extensions[file->type], &consumed);
+    ageratum_strncat(path, info[1], &consumed);
 }
 
 bool ageratum_openFile(ageratum_file_t *file,
