@@ -49,7 +49,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 28
+#define AGERATUM_TWEAK_VERSION 29
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -397,15 +397,37 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 ///////////////////////////////////////////////////////////////////////////////
 //                              IMPLEMENTATION                               //
 // ////////////////////////////////////////////////////////////////////////////
-#ifdef AGERATUM_IMPLEMENTATION
+#ifndef AGERATUM_IMPLEMENTATION
 
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+/**
+ * @var const char *const ageratum_shaderSourcePath
+ * @brief The path to the local shader source directory, kept separate from the
+ * rest of the paths for deduplication reasons.
+ * @since v0.0.0.13
+ */
+[[gnu::visibility("hidden")]]
 const char *const ageratum_shaderSourcePath = "Shaders/Source/";
+
+/**
+ * @var const char *const ageratum_shaderCompiledPath
+ * @brief The path to the local shader compiled output directory, kept separate
+ * from the rest of the paths for deduplication reasons.
+ * @since v0.0.0.13
+ */
+[[gnu::visibility("hidden")]]
 const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
 
+/**
+ * @var const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2]
+ * @brief A list of subdirectory and extensions for each file type recognized by
+ * the library.
+ * @since v0.0.0.18
+ */
+[[gnu::visibility("hidden")]]
 static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
     [AGERATUM_TEXT] = {nullptr, ".txt"},
     [AGERATUM_GLSL_VERTEX] = {ageratum_shaderSourcePath, ".vert"},
@@ -415,6 +437,20 @@ static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
     [AGERATUM_SYSTEM] = {nullptr, nullptr},
 };
 
+/**
+ * @fn void ageratum_strncat(char *dest, const char *const src, size_t
+ * *consumed)
+ * @brief A custom @c strncat implementation to fit the specific needs of
+ * filepath generation within the open/close/load/execute functions of the
+ * library.
+ * @since v0.0.0.17
+ *
+ * @param[out] dest The buffer into which to copy the string data.
+ * @param[in] src The data to be copied into the destination buffer.
+ * @param[in, out] consumed The amount of characters that have been consumed
+ * within @c dest already.
+ */
+[[gnu::nonnull(1, 3)]] [[gnu::visibility("hidden")]]
 static inline void ageratum_strncat(char *dest, const char *const src,
                                     size_t *consumed)
 {
@@ -457,8 +493,20 @@ static inline void ageratum_strncat(char *dest, const char *const src,
 // 0.000001  0.000002  0.000002
 // 0.000001  0.000001  0.000001
 // 0.000001  0.000002  0.000002
-static void ageratum_createFilepath(const ageratum_file_t *const file,
-                                    char *path)
+/**
+ * @fn void ageratum_createFilepath(const ageratum_file_t *const file, char
+ * *path)
+ * @brief A function to generate a full file path from the filetype and basename
+ * of the given file. The given file must have a valid basename and type.
+ * @since v0.0.0.14
+ *
+ * @param[in] file The file structure to operate on.
+ * @param[out] path The generated path. This buffer should be at least as large
+ * as specified in @ref AGERATUM_MAX_PATH_LENGTH.
+ */
+[[gnu::nonnull(1, 2)]] [[gnu::flatten]] [[gnu::visibility("hidden")]]
+static inline void ageratum_createFilepath(const ageratum_file_t *const file,
+                                           char *path)
 {
     size_t consumed = 0;
     if (__builtin_expect(file->type == AGERATUM_SYSTEM, 0))
@@ -607,10 +655,6 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
     return true;
 }
 
-// Benchmarks:
-// Full (original):
-// 0.103485 0.107282 0.106701
-// 0.098565 0.106067 0.099129
 bool ageratum_glslToSPIRV(const ageratum_file_t *const file)
 {
     char path[AGERATUM_MAX_PATH_LENGTH];
@@ -630,7 +674,7 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file)
     };
 
     int status = 0;
-    ageratum_file_t glslangFile = {.filename = "glslang",
+    ageratum_file_t glslangFile = {.basename = "glslang",
                                    .type = AGERATUM_SYSTEM};
     if (!ageratum_executeFile(&glslangFile, argv, 14, &status))
     {
