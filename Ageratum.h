@@ -20,7 +20,7 @@
 #define AGERATUM_MAJOR_VERSION 0
 #define AGERATUM_MINOR_VERSION 0
 #define AGERATUM_PATCH_VERSION 0
-#define AGERATUM_TWEAK_VERSION 18
+#define AGERATUM_TWEAK_VERSION 19
 
 #ifndef AGERATUM_BASE_DIRECTORY
 #define AGERATUM_BASE_DIRECTORY "./Assets/"
@@ -29,6 +29,7 @@
 
 #ifndef AGERATUM_SYSTEM_DIRECTORY
 #define AGERATUM_SYSTEM_DIRECTORY "/usr/bin/"
+#define AGERATUM_SYSTEM_DIRECTORY_LENGTH sizeof(AGERATUM_SYSTEM_DIRECTORY) - 1
 #endif
 
 #define AGERATUM_MAX_PATH_LENGTH 128
@@ -126,39 +127,45 @@ static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
     [AGERATUM_SYSTEM] = {nullptr, nullptr},
 };
 
+// Benchmarks:
+// LibC strncat
+// 0.000004  0.000004  0.000006
+// 0.000001  0.000002  0.000001
+// 0.000001  0.000001  0.000001
+// 0.000004  0.000003  0.000003
+// 0.000001  0.000001  0.000001
+// 0.000002  0.000001  0.000001
+//
+// Custom strncat (old)
+// - Regular inline
+// 0.000003  0.000003  0.000003
+// 0.000001  0.000001  0.000001
+// 0.000001  0.000001  0.000001
+// 0.000003  0.000003  0.000002
+// 0.000002  0.000002  0.000001
+// 0.000002  0.000001  0.000002
+//
+// Custom strncat (new)
+// - Regular inline
+// 0.000001  0.000001  0.000001
+// 0.000001  0.000002  0.000001
+// 0.000001  0.000001  0.000001
+// 0.000001  0.000002  0.000002
+// 0.000001  0.000001  0.000001
+// 0.000001  0.000002  0.000002
 static void ageratum_createFilepath(const ageratum_file_t *const file,
                                     char *path)
 {
-    // Benchmarks:
-    // LibC strncat
-    // 0.000004  0.000004  0.000006
-    // 0.000001  0.000002  0.000001
-    // 0.000001  0.000001  0.000001
-    // 0.000004  0.000003  0.000003
-    // 0.000001  0.000001  0.000001
-    // 0.000002  0.000001  0.000001
-    //
-    // Custom strncat (old)
-    // - Regular inline
-    // 0.000003  0.000003  0.000003
-    // 0.000001  0.000001  0.000001
-    // 0.000001  0.000001  0.000001
-    // 0.000003  0.000003  0.000002
-    // 0.000002  0.000002  0.000001
-    // 0.000002  0.000001  0.000002
-    //
-    // Custom strncat (new)
-    // - Regular inline
-    // 0.000002  0.000002  0.000002
-    // 0.000001  0.000001  0.000001
-    // 0.000001  0.000001  0.000001
-    // 0.000002  0.000002  0.000002
-    // 0.000001  0.000001  0.000001
-    // 0.000001  0.000001  0.000002
-
     size_t consumed = 0;
     if (__builtin_expect(file->type == AGERATUM_SYSTEM, 0))
-        ageratum_strncat(path, AGERATUM_SYSTEM_DIRECTORY, &consumed);
+    {
+        // It's more efficient to just do this inline.
+        char *baseDirectory = AGERATUM_SYSTEM_DIRECTORY;
+        for (size_t i = 0; i < AGERATUM_SYSTEM_DIRECTORY_LENGTH; i++)
+            path[i] = baseDirectory[i];
+        consumed = AGERATUM_SYSTEM_DIRECTORY_LENGTH;
+        ageratum_strncat(path, file->filename, &consumed);
+    }
     else
     {
         // It's more efficient to just do this inline.
@@ -166,12 +173,12 @@ static void ageratum_createFilepath(const ageratum_file_t *const file,
         for (size_t i = 0; i < AGERATUM_BASE_DIRECTORY_LENGTH; i++)
             path[i] = baseDirectory[i];
         consumed = AGERATUM_BASE_DIRECTORY_LENGTH;
-    }
 
-    auto info = ageratum_infos[file->type];
-    ageratum_strncat(path, info[0], &consumed);
-    ageratum_strncat(path, file->filename, &consumed);
-    ageratum_strncat(path, info[1], &consumed);
+        auto info = ageratum_infos[file->type];
+        ageratum_strncat(path, info[0], &consumed);
+        ageratum_strncat(path, file->filename, &consumed);
+        ageratum_strncat(path, info[1], &consumed);
+    }
 }
 
 bool ageratum_openFile(ageratum_file_t *file,
