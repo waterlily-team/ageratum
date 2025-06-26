@@ -49,7 +49,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 31
+#define AGERATUM_TWEAK_VERSION 32
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -464,32 +464,6 @@ static inline void ageratum_strncat(char *dest, const char *const src,
     }
 }
 
-// Benchmarks:
-// LibC strncat
-// 0.000004  0.000004  0.000006
-// 0.000001  0.000002  0.000001
-// 0.000001  0.000001  0.000001
-// 0.000004  0.000003  0.000003
-// 0.000001  0.000001  0.000001
-// 0.000002  0.000001  0.000001
-//
-// Custom strncat (old)
-// - Regular inline
-// 0.000003  0.000003  0.000003
-// 0.000001  0.000001  0.000001
-// 0.000001  0.000001  0.000001
-// 0.000003  0.000003  0.000002
-// 0.000002  0.000002  0.000001
-// 0.000002  0.000001  0.000002
-//
-// Custom strncat (new)
-// - Regular inline
-// 0.000001  0.000001  0.000001
-// 0.000001  0.000002  0.000001
-// 0.000001  0.000001  0.000001
-// 0.000001  0.000002  0.000002
-// 0.000001  0.000001  0.000001
-// 0.000001  0.000002  0.000002
 /**
  * @fn void ageratum_createFilepath(const ageratum_file_t *const file, char
  * *path)
