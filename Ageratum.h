@@ -18,6 +18,7 @@
 #define __need_size_t
 #include <stddef.h>
 #include <stdio.h>
+#include <unistd.h>
 
 /**
  * @def AGERATUM_MAJOR_VERSION
@@ -49,7 +50,7 @@
  * new code is committed.
  * @since v0.0.0.12
  */
-#define AGERATUM_TWEAK_VERSION 35
+#define AGERATUM_TWEAK_VERSION 36
 
 /**
  * @def AGERATUM_BASE_DIRECTORY
@@ -397,6 +398,32 @@ bool ageratum_executeFile(const ageratum_file_t *const file,
 [[gnu::nonnull(1)]] [[gnu::cold]] [[nodiscard("Expression result unchecked.")]]
 bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 
+/**
+ * @fn void ageratum_createFilepath(const ageratum_file_t *const file, char
+ * *path)
+ * @brief A function to generate a full file path from the filetype and basename
+ * of the given file. The given file must have a valid basename and type.
+ * @since v0.0.0.14
+ *
+ * @param[in] file The file structure to operate on.
+ * @param[out] path The generated path. This buffer should be at least as large
+ * as specified in @ref AGERATUM_MAX_PATH_LENGTH.
+ */
+[[gnu::nonnull(1, 2)]] [[gnu::flatten]]
+void ageratum_createFilepath(const ageratum_file_t *const file, char *path);
+
+[[gnu::nonnull(1)]] [[gnu::hot]] [[nodiscard("Expression result unchecked.")]]
+static inline bool ageratum_fileExists(const ageratum_file_t *const file)
+{
+    char path[AGERATUM_MAX_PATH_LENGTH];
+    ageratum_createFilepath(file, path);
+    return access(path, F_OK) == 0;
+}
+
+[[gnu::nonnull(1)]]
+void ageratum_splitStem(const char *const original, char *filename,
+                        char *extension);
+
 ///////////////////////////////////////////////////////////////////////////////
 //                              IMPLEMENTATION                               //
 // ////////////////////////////////////////////////////////////////////////////
@@ -404,15 +431,14 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file);
 
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <unistd.h>
 
 /**
  * @var const char *const ageratum_shaderSourcePath
- * @brief The path to the local shader source directory, kept separate from the
- * rest of the paths for deduplication reasons.
+ * @brief The path to the local shader source directory, kept separate from
+ * the rest of the paths for deduplication reasons.
  * @since v0.0.0.13
  */
-const char *const ageratum_shaderSourcePath = "Shaders/Source/";
+static const char *const ageratum_shaderSourcePath = "Shaders/Source/";
 
 /**
  * @var const char *const ageratum_shaderCompiledPath
@@ -420,7 +446,7 @@ const char *const ageratum_shaderSourcePath = "Shaders/Source/";
  * from the rest of the paths for deduplication reasons.
  * @since v0.0.0.13
  */
-const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
+static const char *const ageratum_shaderCompiledPath = "Shaders/Compiled/";
 
 /**
  * @var const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2]
@@ -451,8 +477,7 @@ static const char *const ageratum_infos[AGERATUM_TYPE_COUNT][2] = {
  * within @c dest already.
  */
 [[gnu::nonnull(1, 3)]]
-static inline void ageratum_strncat(char *dest, const char *const src,
-                                    size_t *consumed)
+void ageratum_strncat(char *dest, const char *const src, size_t *consumed)
 {
     if (src == nullptr) return;
 
@@ -467,20 +492,7 @@ static inline void ageratum_strncat(char *dest, const char *const src,
     }
 }
 
-/**
- * @fn void ageratum_createFilepath(const ageratum_file_t *const file, char
- * *path)
- * @brief A function to generate a full file path from the filetype and basename
- * of the given file. The given file must have a valid basename and type.
- * @since v0.0.0.14
- *
- * @param[in] file The file structure to operate on.
- * @param[out] path The generated path. This buffer should be at least as large
- * as specified in @ref AGERATUM_MAX_PATH_LENGTH.
- */
-[[gnu::nonnull(1, 2)]] [[gnu::flatten]]
-static inline void ageratum_createFilepath(const ageratum_file_t *const file,
-                                           char *path)
+void ageratum_createFilepath(const ageratum_file_t *const file, char *path)
 {
     size_t consumed = 0;
     if (__builtin_expect(file->type == AGERATUM_SYSTEM, 0))
@@ -662,6 +674,27 @@ bool ageratum_glslToSPIRV(const ageratum_file_t *const file)
     }
     primrose_log(VERBOSE_OK, "Compiled shader '%s'.", path);
     return true;
+}
+
+void ageratum_splitStem(const char *const original, char *filename,
+                        char *extension)
+{
+    char *originalCopy = (char *)original;
+    size_t written = 0;
+    while (*originalCopy != '.' && written < AGERATUM_MAX_PATH_LENGTH)
+    {
+        *filename = *originalCopy;
+        filename++;
+        originalCopy++;
+        written++;
+    }
+    filename[written] = 0;
+
+    while (*originalCopy++ != 0)
+    {
+        *extension = *originalCopy;
+        extension++;
+    }
 }
 
 #endif // AGERATUM_IMPLEMENTATION
